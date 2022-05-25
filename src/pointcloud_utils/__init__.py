@@ -1,4 +1,3 @@
-from turtle import color
 import open3d as o3d
 import numpy as np
 import cv2
@@ -8,52 +7,24 @@ from sensor_msgs.msg import Image, CameraInfo
 
 bridge = cv_bridge.CvBridge()
 
-def ros_to_rgbd(color_msg: Image, depth_msg: Image) -> o3d.geometry.RGBDImage:
+def ros_to_rgbd(color_msg: Image, depth_msg: Image, corner1=None, corner2=None) -> o3d.geometry.RGBDImage:
     depth_img = bridge.imgmsg_to_cv2(depth_msg, desired_encoding='passthrough')
     color_img = bridge.imgmsg_to_cv2(color_msg, desired_encoding='passthrough')
 
+    
+    if corner1 is not None and corner2 is not None:
+      mask = np.zeros(color_img.shape[:2], dtype=np.uint8)
+      mask = cv2.rectangle(mask, corner1, corner2, 255, -1)
+      # cv2.imshow('Mask', mask)
+      color_img = cv2.bitwise_and(color_img, color_img, mask=mask)
+      # masked_depth = cv2.bitwise_and(depth_img, depth_img, mask=mask) * 255
+        
+      # cv2.imshow('Depth', masked_depth)
+      # cv2.imshow('Color', color_img)
+      # cv2.waitKey(0)
     depth_raw = o3d.geometry.Image(depth_img.astype(np.float32))
     color_raw = o3d.geometry.Image(color_img.astype(np.uint8))
-    
     return o3d.geometry.RGBDImage.create_from_color_and_depth(color_raw, depth_raw, convert_rgb_to_intensity=False)
-
-def depth_msg_to_pcd(depth_msg: Image, camera_model: o3d.camera.PinholeCameraIntrinsic):
-    depth_img = bridge.imgmsg_to_cv2(depth_msg, desired_encoding='passthrough')
-
-    cam_K = np.asarray(camera_model.intrinsic_matrix)
-    
-    fx = cam_K[0, 0]
-    fy = cam_K[1, 1]
-    cx = cam_K[0, 2]
-    cy = cam_K[1, 2]
-
-    [height, width] = depth_img.shape
-    nx = np.linspace(0, width-1, width)
-    ny = np.linspace(0, height-1, height)
-    u, v = np.meshgrid(nx, ny)
-
-    # Calculate numpy point cloud from depth data and params
-    x = (u.flatten() - cx) / fx
-    y = (v.flatten() - cy) / fy
-
-    z = depth_img.flatten() / 1000
-    x = np.multiply(x,z)
-    y = np.multiply(y,z)
-
-    xyz = np.zeros((np.size(x), 3))
-    xyz[:, 0] = np.reshape(x, -1)
-    xyz[:, 1] = np.reshape(y, -1)
-    xyz[:, 2] = np.reshape(z, -1)
-
-    # Create an open3d pointcloud object from realsense depth data
-    pcd = o3d.geometry.PointCloud()
-    
-    mask = xyz[:,2] < 1
-    pcd.points = o3d.utility.Vector3dVector(xyz[mask])
-    pcd.colors = o3d.utility.Vector3dVector(xyz[mask])
-
-    return pcd
-    
         
 def camera_info_to_camera_model(camera_info: CameraInfo) -> o3d.camera.PinholeCameraIntrinsic:
     return o3d.camera.PinholeCameraIntrinsic(
@@ -63,6 +34,7 @@ def camera_info_to_camera_model(camera_info: CameraInfo) -> o3d.camera.PinholeCa
     )
 
 def rgbd_to_pcd_t(rgbd: o3d.geometry.RGBDImage, camera_model: o3d.camera.PinholeCameraIntrinsic) -> o3d.t.geometry.PointCloud:
+    print(camera_model)
     return o3d.t.geometry.PointCloud.create_from_rgbd_image(
       rgbd,
       camera_model,
