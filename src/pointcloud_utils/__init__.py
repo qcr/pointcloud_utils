@@ -2,7 +2,9 @@ import open3d as o3d
 import numpy as np
 import cv2
 import cv_bridge
-
+import tf2_ros
+import rospy
+from geometry_msgs.msg import Pose, TransformStamped
 from sensor_msgs.msg import Image, CameraInfo
 
 bridge = cv_bridge.CvBridge()
@@ -88,3 +90,105 @@ def reproject(pcd: o3d.geometry.PointCloud, camera_info: CameraInfo, img: np.nda
     cv2.circle(img, (x,y), 2, colors[idx] if colors.shape[0] != 0 else (1,0,1), -1)
 
   return img
+
+##### ------------------------ Image Helper Class --------------------------------------------
+class ImageHelper(object):
+    def __init__(self):
+        pass
+
+    def xyz_to_pixel(self, x, y, z, camera_model: o3d.camera.PinholeCameraIntrinsic):
+        """
+        Converts a xyz (m) coord to 2D pixel (u,v) using camera_model
+        :param x: x coordinate (m)
+        :type x: float32
+        :param y: y coordinate (m)
+        :type y: float32
+        :param z: z coordinate (m)
+        :type x: float32
+        :return pixel: pixel coordinate transformed
+        :rtype pixel: tuple of two elements
+        """
+        cam_K = np.asarray(camera_model.intrinsic_matrix)
+        fx = cam_K[0, 0]
+        fy = cam_K[1, 1]
+        cx = cam_K[0, 2]
+        cy = cam_K[1, 2]
+
+        if not x:
+            x = 0.0
+        if not y:
+            y = 0.0
+        if not z:
+            z = 0.0
+
+        height = z
+        if height:
+            u = ((x * fx) / height) + cx
+            v = ((y * fy) / height) + cy
+            return (u,v)
+        else:
+            return (None,None)
+
+    def pixel_to_xy(self, u, v, depth, camera_model: o3d.camera.PinholeCameraIntrinsic):
+        """
+        Converts a 2D pixel (u,v) to xy (m) using camera_model and a defined depth (m)
+        :param u: x coordinate
+        :type u: int32
+        :param v: y coordinate
+        :type v: int32
+        :param depth: depth from camera to compute x and y
+        :type depth: float32
+        :return xyz: pixel coordinate transformed
+        :rtype xyz: tuple of two elements
+        """
+        cam_K = np.asarray(camera_model.intrinsic_matrix)
+        fx = cam_K[0, 0]
+        fy = cam_K[1, 1]
+        cx = cam_K[0, 2]
+        cy = cam_K[1, 2]
+
+        if not u:
+            u = 0
+        if not v:
+            v = 0
+        if not depth:
+            depth = 0.0
+
+        if fx and fy:
+            x = ((u - cx) * depth) / fx
+            y = ((v - cy) * depth) / fy
+            return (x,y)
+        else:
+            return (None,None)
+
+##### ------------------------ ROS Helper Class --------------------------------------------
+class ROSHelper(object):
+    def __init__(self) -> None:
+        pass
+
+    def tf_to_pose(self, base, target, tf_buffer) -> Pose():
+        """
+        Gets a transform and converts to a Pose object
+        """
+        pose = Pose()
+        try:
+            # Try to get transform frame from tf2
+            trans = tf_buffer.lookup_transform(
+                base,
+                target,
+                rospy.Time()
+            )
+
+            pose.position.x = trans.transform.translation.x
+            pose.position.y = trans.transform.translation.y
+            pose.position.z = trans.transform.translation.z
+            pose.orientation.x = trans.transform.rotation.x
+            pose.orientation.y = trans.transform.rotation.y
+            pose.orientation.z = trans.transform.rotation.z
+            pose.orientation.w = trans.transform.rotation.w
+        except(tf2_ros.LookupException, 
+            tf2_ros.ConnectivityException, 
+            tf2_ros.ExtrapolationException):
+            pass
+
+        return pose
