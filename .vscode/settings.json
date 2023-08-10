@@ -1,0 +1,12 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/dasun/ros_workspaces/shorts_ws/devel/lib/python3.9/site-packages",
+        "/home/dasun/mambaforge/envs/ros1_env/lib/python3.9/site-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/dasun/ros_workspaces/shorts_ws/devel/lib/python3.9/site-packages",
+        "/home/dasun/mambaforge/envs/ros1_env/lib/python3.9/site-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages"
+    ]
+}

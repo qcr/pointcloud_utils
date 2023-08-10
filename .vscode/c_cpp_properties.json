@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/dasun/ros_workspaces/shorts_ws/devel/include/**",
+        "/home/dasun/mambaforge/envs/ros1_env/include/**",
+        "/home/dasun/mambaforge/envs/ros1_env/x86_64-conda-linux-gnu/sysroot/usr/include/**",
+        "/home/dasun/ros_workspaces/shorts_ws/src/apriltags_helpers/include/**",
+        "/home/dasun/ros_workspaces/shorts_ws/src/urg_node/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
